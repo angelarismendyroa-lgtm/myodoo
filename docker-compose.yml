@@ -1,0 +1,51 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# 🏛️ ODOO 19 + PostgreSQL 16 — Deploy via Dokploy
+# ═══════════════════════════════════════════════════════════════════════════════
+# Proyecto: MayordomIA / AlianeD
+# Servidor: Oracle Cloud (Ampere A1 - ARM64)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+services:
+  # ─── PostgreSQL 16 ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: mayordomia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo_alianed_2026
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/pgdata
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Odoo 19 (build from source) ───────────────────────────────────────────
+  odoo:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mayordomia-odoo
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      HOST: db
+      PORT: 5432
+      USER: odoo
+      PASSWORD: odoo_alianed_2026
+    volumes:
+      - odoo_data:/var/lib/odoo
+      - odoo_addons:/mnt/extra-addons
+    ports:
+      - "8069:8069"
+
+volumes:
+  postgres_data:
+  odoo_data:
+  odoo_addons:
